@@ -1,5 +1,7 @@
 const addExpenseButton = document.getElementById("add-expense-button");
 
+const parentContainer = document.getElementById("parent-container");
+
 const descriptionInput = document.getElementById("description");
 const valueInput = document.getElementById("value");
 const selectInput = document.getElementById("type");
@@ -13,7 +15,6 @@ const availableBudget = document.getElementById("available-budget");
 const deleteIncome = document.querySelectorAll(".delete-income");
 const deleteExpense = document.querySelectorAll(".delete-expense");
 
-const parentContainer = document.getElementById("parent-container");
 let sufficient = true;
 
 function formatMoney(value) {
@@ -33,7 +34,6 @@ function calculateIncome() {
   }
   totalIncome.innerHTML = formatMoney(sum);
 }
-//calculateIncome();
 
 /**
  * Task 1: Calculate total expense
@@ -47,7 +47,12 @@ function calculateExpense() {
     console.log(parseFloat(valueString));
     sum += parseFloat(valueString);
   }
-  totalExpense.innerHTML = formatMoney(sum);
+  let income = parseFloat(totalIncome.innerHTML.replace(/,/g, ""));
+    if (sum > income) {
+        sufficient = false;
+    } else {
+        totalExpense.innerHTML = formatMoney(sum);
+    }
 }
 
 /**
@@ -67,16 +72,59 @@ function calculateBudget() {
  */
 //function deleteEntry() {}
 
-parentContainer.addEventListener("click",function(e){
-  const target = e.target;
-  if(target.classList.contains("delete-income")){
-    handleDeleteIncome(target);
-  }
-  else  if(target.classList.contains("delete-expense")){
-    handleDeleteExpense(target);
-  }
+parentContainer.addEventListener("click", function(e) {
+    const target = e.target;
+    if (target.classList.contains("delete-income")) {
+        handleDeleteIncome(target);
+    } else if (target.classList.contains("delete-expense")) {
+        handleDeleteExpense(target);
+    }
 });
 
+function parseMoneyValue(element){
+  return parseFloat(element.innerHTML.replace(/,/g, ""));
+}
+
+function updateUI(element, value){
+  element.innerHTML = formatMoney(value);
+}
+
+function handleDeleteIncome(target){
+  let decreaseIncome = parseMoneyValue(target.previousElementSibling);
+  let income =parseMoneyValue(totalIncome);
+  let expense =parseMoneyValue(totalExpense);
+  let budget =parseMoneyValue(availableBudget);
+
+  income -= decreaseIncome;
+  budget -= decreaseIncome;
+
+  if(income<expense){
+    alert("Sorry! Expense can't be higher than income");
+  }
+  else{
+    updateUI(totalIncome,income);
+    updateUI(availableBudget,budget);
+
+    target.parentNode.parentNode.parentNode.remove();
+  }
+}
+
+function handleDeleteExpense(target){
+  let decreaseExpense = target.previousElementSibling.innerHTML.replace(/,/g, "");
+  decreaseExpense = parseFloat(Math.abs(decreaseExpense));
+  let expense =parseMoneyValue(totalExpense);
+  let budget = parseMoneyValue(availableBudget);
+
+
+  expense -= decreaseExpense;
+  budget += decreaseExpense;
+  totalExpense.innerHTML = formatMoney(expense);
+  availableBudget.innerHTML = formatMoney(budget);
+
+  target.parentNode.parentNode.parentNode.remove();
+}
+
+//update entry
 function addEntry() {
   const type = selectInput.value;
   const description = descriptionInput.value;
@@ -122,7 +170,18 @@ function addEntry() {
   // update total income value
   calculateIncome();
   calculateExpense();
-  calculateBudget();
+   let budget = parseFloat(availableBudget.innerHTML.replace(/,/g, ""));
+    // list.innerHTML += newEntryHtml;
+    if (!sufficient || (value > availableBudget)) {
+        // return;
+        alert('Insufficient balance. Please add some money..');
+        list.innerHTML = inner;
+
+    } else {
+        calculateBudget();
+    }
+    descriptionInput.value = "";
+    valueInput.value = "";
 }
 
 addExpenseButton.addEventListener("click", addEntry);
